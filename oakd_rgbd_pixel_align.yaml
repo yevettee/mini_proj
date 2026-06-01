@@ -1,0 +1,133 @@
+# =============================================================================
+# TurtleBot4 OAK-D RGB-Depth Pixel Alignment 전용 설정 파일
+# =============================================================================
+#
+# 목적:
+#   RGB 이미지와 Depth 이미지의 픽셀 단위 정렬(pixel alignment)을 최대한 정확하게 맞추는 것
+#
+# 사용 방법:
+#   ros2 launch turtlebot4_bringup oakd.launch.py \
+#       params_file:=/home/woody/mini_proj/oakd_rgbd_pixel_align.yaml
+#
+#   (네임스페이스가 /robot6 인 경우 launch가 자동으로 /robot6/oakd 아래에 적용합니다)
+#
+# 튜닝 워크플로우:
+#   1. 이 YAML로 oakd 실행
+#   2. tb4_cam_align_tuner.py 로 실시간 시각적 확인 (Edge Overlay 모드 추천)
+#   3. rqt_reconfigure 로 실시간 조정 가능한 파라미터(r_ 접두사) 미세 조정
+#   4. 좋은 설정을 찾으면 이 파일에 i_ 파라미터 위주로 반영하여 저장
+#   5. oakd 재시작 후 최종 검증
+#
+# =============================================================================
+
+/oakd:
+  ros__parameters:
+    # -------------------------------------------------------------------------
+    # 공통 카메라 설정
+    # -------------------------------------------------------------------------
+    camera:
+      i_enable_imu: false
+      i_enable_ir: true                     # IR 조명 사용 (depth 품질에 영향 큼)
+      i_floodlight_brightness: 0
+      i_laser_dot_brightness: 100           # Dot projector 강도 (OAK-D Pro 추천값)
+      i_nn_type: none
+      i_pipeline_type: RGBD                 # ★ 반드시 RGBD (RGB만 쓰면 depth 자체가 안 나옴)
+      i_usb_speed: SUPER_PLUS
+
+    # -------------------------------------------------------------------------
+    # RGB 설정
+    # -------------------------------------------------------------------------
+    rgb:
+      i_board_socket_id: 0                  # OAK-D에서 RGB = CAM_A = socket 0 (고정)
+      i_fps: 15.0
+
+      # === 해상도 설정 (Alignment의 핵심) ===
+      # RGB와 Stereo/Depth의 출력 해상도가 최대한 일치해야 픽셀 정렬이 잘 된다.
+      # 아래는 1280x720 기준 추천값. 대역폭이 부족하면 640x480으로 낮추는 걸 추천.
+      i_resolution: '720'                   # '1080', '720', '480' 등
+      i_width: 1280
+      i_height: 720
+
+      i_interleaved: false
+      i_max_q_size: 10
+
+      # Preview 사용 (대역폭 절약하면서도 alignment 확인에 충분한 경우가 많음)
+      i_enable_preview: true
+      i_preview_size: 640                   # 튜닝 시에는 640~1280 사이에서 테스트
+      i_keep_preview_aspect_ratio: true
+      i_publish_topic: true                 # /rgb/image_raw 도 함께 보고 싶을 때 true
+
+      i_low_bandwidth: true
+
+    # -------------------------------------------------------------------------
+    # Stereo / Depth 설정 (Pixel Alignment 핵심 구간)
+    # -------------------------------------------------------------------------
+    stereo:
+      # === Alignment 관련 최우선 파라미터 ===
+      i_board_socket_id: 0                  # ★ RGB(socket 0)에 depth를 align
+      i_align_depth: true                   # ★ RGB 프레임 기준으로 depth 재투영 (가장 중요!)
+      i_run_align_on_host: false            # device-side alignment가 일반적으로 더 정확하고 빠름
+      i_output_depth: true                  # depth 이미지 출력 활성화
+      i_output_disparity: false
+
+      # === 해상도 매칭 (RGB와 동일하게 맞추는 게 pixel alignment에 유리) ===
+      i_width: 1280
+      i_height: 720
+
+      # === 품질 관련 설정 ===
+      i_lr_check: true                      # Left-Right consistency check (노이즈 감소)
+      i_subpixel: true                      # Sub-pixel accuracy (depth가 더 부드러워짐)
+      i_extended_disparity: false           # 가까운 거리(<1m) 위주면 true 고려
+      i_depth_preset: HIGH_ACCURACY         # FAST_ACCURACY / HIGH_ACCURACY / DEFAULT
+
+      i_publish_topic: true
+
+      # -------------------------------------------------------------------------
+      # 실시간 필터 (r_ 접두사) - rqt_reconfigure로 미세 조정 추천
+      # -------------------------------------------------------------------------
+      # 아래 값들은 시작점이며, tb4_cam_align_tuner.py의 Edge Overlay를 보면서
+      # rqt_reconfigure로 spatial/temporal filter 등을 조정해서 엣지 선명도와 노이즈를
+      # 최적화하는 것을 강력 추천한다.
+      #
+      # 예시 (필요시 주석 해제 후 값 조정):
+      # r_spatial_filter_enable: true
+      # r_spatial_filter_alpha: 0.5
+      # r_spatial_filter_delta: 20
+      # r_temporal_filter_enable: true
+      # r_temporal_filter_alpha: 0.4
+      # r_threshold_filter_min_range: 200     # mm
+      # r_threshold_filter_max_range: 10000   # mm
+      # -------------------------------------------------------------------------
+
+    # -------------------------------------------------------------------------
+    # 선택적 활성화 (필요할 때만)
+    # -------------------------------------------------------------------------
+    # left:
+    #   i_publish_topic: true
+    # right:
+    #   i_publish_topic: true
+
+    # imu:
+    #   i_publish_topic: false
+
+# =============================================================================
+# 추가 팁 (Pixel Alignment)
+# =============================================================================
+#
+# 1. 해상도 불일치가 alignment 실패의 가장 흔한 원인입니다.
+#    → rgb와 stereo의 i_width/i_height를 가능한 한 동일하게 유지하세요.
+#
+# 2. i_ 로 시작하는 파라미터는 노드 시작 시에만 적용됩니다.
+#    값을 바꾼 후에는 반드시 oakd 재시작이 필요합니다.
+#
+# 3. r_ 로 시작하는 파라미터는 rqt_reconfigure로 실시간 변경 가능합니다.
+#    tb4_cam_align_tuner.py + rqt_reconfigure 조합이 가장 강력한 튜닝 방법입니다.
+#
+# 4. 현재 토픽 구조 (사용자 환경 기준):
+#    - RGB: /robot6/oakd/rgb/preview/image_raw 또는 /robot6/oakd/rgb/image_raw
+#    - Depth: /robot6/oakd/stereo/image_raw (+ compressedDepth transport)
+#
+# 5. factory calibration이 크게 틀어진 경우, 수동 파라미터 튜닝으로는 한계가 있을 수
+#    있습니다. 그때는 depthai calibration tool로 전체 재보정을 고려하세요.
+#
+# =============================================================================

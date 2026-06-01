@@ -1,0 +1,75 @@
+# TurtleBot4 OAK-D RGB + Depth (RGBD pipeline) + RGB-to-Depth pixel alignment 설정 예시
+#
+# 이 파일을 수정하면서 수동으로 alignment 를 맞춰보세요.
+#
+# 사용 방법 (권장):
+#   1. turtlebot4_bringup 이 이미 실행 중이라면 중지 (또는 robot_upstart 서비스 중지)
+#   2. 아래 명령으로 직접 실행:
+#      ros2 launch turtlebot4_bringup oakd.launch.py \
+#          params_file:=/home/ubuntu/my_oakd_rgbd_align.yaml \
+#          camera:=oakd_pro          # 또는 oakd_lite
+#
+#   (네임스페이스가 설정되어 있다면 launch가 자동으로 /<ns>/oakd 아래에 적용합니다)
+#
+# 주의:
+# - i_ 로 시작하는 파라미터는 노드 시작 시에만 적용됩니다. (변경 후 재시작 필요)
+# - r_ 로 시작하는 파라미터는 rqt_reconfigure 로 실시간 변경 가능
+# - alignment 가 안 맞을 경우:
+#     * i_align_depth + i_board_socket_id 확인
+#     * RGB와 Depth 출력 해상도/스케일이 서로 맞는지 확인 (중요!)
+#     * factory calibration 이 틀어진 경우 → depthai calibration tool 로 전체 재보정 권장
+
+/oakd:
+  ros__parameters:
+    # ==================== 공통 카메라 설정 ====================
+    camera:
+      i_enable_imu: false
+      i_enable_ir: true                 # IR 조명 (depth 품질에 영향)
+      i_floodlight_brightness: 0
+      i_laser_dot_brightness: 100       # dot projector 강도 (Pro 모델)
+      i_nn_type: none
+      i_pipeline_type: RGBD             # ★ RGB + Stereo + Depth 활성화 (RGB만으로는 안 됨)
+      i_usb_speed: SUPER_PLUS
+
+    # ==================== RGB 설정 ====================
+    rgb:
+      i_board_socket_id: 0              # OAK-D 에서 RGB = CAM_A = socket 0
+      i_fps: 15.0
+      # 해상도: Depth 해상도와 가급적 맞추는 게 pixel alignment 에 유리
+      i_resolution: '720'               # '1080', '720', '480' 등
+      i_width: 1280
+      i_height: 720
+      i_interleaved: false
+      i_max_q_size: 10
+      i_enable_preview: true
+      i_preview_size: 640               # 네트워크/대역폭 고려. 정밀 튜닝 시 크게 (예: 1280)
+      i_keep_preview_aspect_ratio: true
+      i_publish_topic: false            # true 로 하면 /oakd/rgb/image_raw 도 나옴 (대역폭 주의)
+      i_low_bandwidth: true
+
+    # ==================== Stereo / Depth 핵심 (Alignment) ====================
+    stereo:
+      i_board_socket_id: 0              # ★ RGB(socket 0)에 depth 를 align 하겠다는 의미
+      i_align_depth: true               # ★ RGB 프레임 기준으로 depth 재투영 (pixel 2 pixel alignment 핵심)
+      i_run_align_on_host: false        # 대부분 false (device side align)
+      i_output_depth: true
+      i_output_disparity: false
+      i_lr_check: true                  # Left-Right consistency (depth noise 감소)
+      i_extended_disparity: false       # 가까운 물체( < ~1m )에서 유리할 때 true
+      i_subpixel: true                  # sub-pixel accuracy (depth 더 부드러움)
+      i_depth_preset: HIGH_ACCURACY     # FAST_ACCURACY / HIGH_ACCURACY / DEFAULT
+      i_publish_topic: true
+
+      # 아래 필터들은 depth map 품질(엣지 선명도, noise)에 크게 영향.
+      # rqt 에서 r_ 로 시작하는 필터 파라미터를 실시간으로 만져보며 최적 찾기 추천
+      # (예: spatial filter, temporal filter 등)
+
+    # 필요하면 left/right raw 이미지 토픽도 활성화
+    # left:
+    #   i_publish_topic: true
+    # right:
+    #   i_publish_topic: true
+
+    # 사용하지 않는 기능은 비활성화해서 대역폭/CPU 절약
+    # imu:
+    #   i_publish_topic: false
