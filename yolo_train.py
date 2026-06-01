@@ -5,6 +5,7 @@ from ultralytics import YOLO
 MODEL_NAME = 'yolov8n.pt'          # 예: yolov8n.pt / yolov12n.pt / yolov8l.pt 등
 DATA_YAML = './data.yaml'          # 데이터셋 설정 yaml 경로 (Round 3 압축 실험 시 압축용 yaml로 변경)
 EPOCHS = 100                       # Round 1~3: 100, Round 4: 150
+PATIENCE = 20                      # 조기 종료(Early Stopping) 대기 에포크 수 (개선이 없을 시 학습 종료, 0으로 설정하면 비활성화)
 AUGMENT = False                    # Round 1~3: False, Round 4: True (Mosaic 강화)
 PROJECT_NAME = 'YOLO_Tournament'   
 RUN_NAME = 'Round1_v8_Nano'        # 실험별 세부 결과 폴더명 설정
@@ -22,7 +23,8 @@ model = YOLO(MODEL_NAME)
 print(f"=== [{RUN_NAME}] 학습 시작 ===")
 model.train(
     data=DATA_YAML, epochs=EPOCHS, batch=16, imgsz=640,
-    mosaic=1.0 if AUGMENT else 0.0, project=PROJECT_NAME, name=RUN_NAME, device=device_setup, plots=True
+    mosaic=1.0 if AUGMENT else 0.0, project=PROJECT_NAME, name=RUN_NAME, device=device_setup, plots=True,
+    patience=PATIENCE
 )
 
 print(f"=== [{RUN_NAME}] 최종 Test 데이터셋 검증 시작 ===")
