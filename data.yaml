@@ -1,0 +1,8 @@
+path: ./dataset_split
+train: images/train
+val: images/val
+test: images/test
+
+names:
+  0: camera
+  1: dummy_box
