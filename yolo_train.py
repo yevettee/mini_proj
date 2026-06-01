@@ -1,4 +1,7 @@
 import torch
+import csv
+import os
+import matplotlib.pyplot as plt
 from ultralytics import YOLO
 
 # ==================== [라운드별 옵션 변경 파트] ====================
@@ -42,3 +45,49 @@ r = metrics.results_dict['metrics/recall(B)']
 f1 = (2 * p * r) / (p + r) if (p + r) > 0 else 0
 print(f"- F1-Score:  {f1:.3f}")
 print("="*50)
+
+# ==================== [성능지표 저장] ====================
+save_dir = os.path.join(PROJECT_NAME, RUN_NAME)
+os.makedirs(save_dir, exist_ok=True)
+
+metric_data = {
+    'Run': RUN_NAME,
+    'Model': MODEL_NAME,
+    'Epochs': EPOCHS,
+    'mAP50': round(metrics.results_dict['metrics/mAP50(B)'], 4),
+    'mAP50-95': round(metrics.results_dict['metrics/mAP50-95(B)'], 4),
+    'Precision': round(p, 4),
+    'Recall': round(r, 4),
+    'F1-Score': round(f1, 4),
+}
+
+# CSV 저장 (누적 기록용)
+csv_path = os.path.join(PROJECT_NAME, 'results_summary.csv')
+write_header = not os.path.exists(csv_path)
+with open(csv_path, 'a', newline='') as f:
+    writer = csv.DictWriter(f, fieldnames=metric_data.keys())
+    if write_header:
+        writer.writeheader()
+    writer.writerow(metric_data)
+print(f"-> CSV 저장 완료: {csv_path}")
+
+# 막대그래프 이미지 저장
+labels = ['mAP50', 'mAP50-95', 'Precision', 'Recall', 'F1-Score']
+values = [metric_data['mAP50'], metric_data['mAP50-95'],
+          metric_data['Precision'], metric_data['Recall'], metric_data['F1-Score']]
+colors = ['#4C72B0', '#55A868', '#C44E52', '#8172B2', '#CCB974']
+
+fig, ax = plt.subplots(figsize=(8, 5))
+bars = ax.bar(labels, values, color=colors, width=0.5)
+ax.set_ylim(0, 1.05)
+ax.set_ylabel('Score')
+ax.set_title(f'[{RUN_NAME}] Test Metrics')
+for bar, val in zip(bars, values):
+    ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.02,
+            f'{val:.3f}', ha='center', va='bottom', fontsize=11, fontweight='bold')
+plt.tight_layout()
+chart_path = os.path.join(save_dir, 'metrics_chart.png')
+plt.savefig(chart_path, dpi=150)
+plt.close()
+print(f"-> 차트 이미지 저장 완료: {chart_path}")
+# =========================================================
