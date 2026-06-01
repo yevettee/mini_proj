@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from ultralytics import YOLO
 
 # ==================== [라운드별 옵션 변경 파트] ====================
-MODEL_NAME = 'yolov8n.pt'          # 예: yolov8n.pt / yolov12n.pt / yolov8l.pt 등
+MODEL_NAME = 'yolov8n.pt'           # 예: yolov8n.pt / yolo12n.pt / yolov8l.pt 등
 DATA_YAML = './data.yaml'          # 데이터셋 설정 yaml 경로 (Round 3 압축 실험 시 압축용 yaml로 변경)
 EPOCHS = 100                       # Round 1~3: 100, Round 4: 150
 PATIENCE = 20                      # 조기 종료(Early Stopping) 대기 에포크 수 (개선이 없을 시 학습 종료, 0으로 설정하면 비활성화)
