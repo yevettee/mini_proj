@@ -4,5 +4,5 @@ val: images/val
 test: images/test
 
 names:
-  0: camera
-  1: dummy_box
+  0: car
+  1: dummy

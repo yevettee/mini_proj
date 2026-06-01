@@ -1,5 +1,7 @@
 import torch
 import os
+import random
+import numpy as np
 import matplotlib.pyplot as plt
 from ultralytics import YOLO
 
@@ -11,6 +13,25 @@ PATIENCE = 20                      # 조기 종료(Early Stopping) 대기 에포
 AUGMENT = False                    # Round 1~3: False, Round 4: True (Mosaic 강화)
 PROJECT_NAME = 'YOLO_Tournament'   
 RUN_NAME = 'Round1_v8_Nano'        # 실험별 세부 결과 폴더명 설정
+SEED = 42                          # 재현성(reproducibility)을 위한 시드 값
+
+# --- Seed별 폴더 분리 설정 (seed_42 형태로 통합) ---
+# SEED 값을 바꾸면 runs/detect/seed_42/, runs/detect/seed_123/ 등으로 자동 분리 저장됩니다.
+TRAIN_PROJECT = f"seed_{SEED}"     # 예: seed_42
+TRAIN_NAME = RUN_NAME              # 예: Round1_v8_Nano
+# 결과 최종 경로 예시: runs/detect/seed_42/Round1_v8_Nano/
+# =================================================================
+
+# ==================== [재현성 Seed 고정] ====================
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+torch.cuda.manual_seed(SEED)
+torch.cuda.manual_seed_all(SEED)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+os.environ['PYTHONHASHSEED'] = str(SEED)
+print(f"-> 재현성 Seed 고정 완료 (SEED={SEED})")
 # =================================================================
 
 if torch.cuda.is_available():
@@ -22,18 +43,19 @@ else:
 
 model = YOLO(MODEL_NAME)
 
-print(f"=== [{RUN_NAME}] 학습 시작 ===")
+print(f"=== [{RUN_NAME}] 학습 시작 (저장 경로: runs/detect/{TRAIN_PROJECT}/{TRAIN_NAME}) ===")
 model.train(
     data=DATA_YAML, epochs=EPOCHS, batch=16, imgsz=640,
-    mosaic=1.0 if AUGMENT else 0.0, project=PROJECT_NAME, name=RUN_NAME, device=device_setup, plots=True,
-    patience=PATIENCE
+    mosaic=1.0 if AUGMENT else 0.0, project=TRAIN_PROJECT, name=TRAIN_NAME, device=device_setup, plots=True,
+    patience=PATIENCE, seed=SEED
 )
 
 print(f"=== [{RUN_NAME}] 최종 Test 데이터셋 검증 시작 ===")
-metrics = model.val(data=DATA_YAML, split='test', device=device_setup)
+metrics = model.val(data=DATA_YAML, split='test', device=device_setup, save_json=True)
 
 print("\n" + "="*50)
-print(f" 실험 [{RUN_NAME}] 최종 성능 리포트")
+print(f" 실험 [{RUN_NAME}] 최종 성능 리포트  (Seed={SEED})")
+print(f" 저장 위치: runs/detect/{TRAIN_PROJECT}/{TRAIN_NAME}/")
 print("="*50)
 print(f"- mAP50:     {metrics.results_dict['metrics/mAP50(B)']:.3f}")
 print(f"- mAP50-95:  {metrics.results_dict['metrics/mAP50-95(B)']:.3f}")
@@ -46,7 +68,11 @@ print(f"- F1-Score:  {f1:.3f}")
 print("="*50)
 
 # ==================== [성능지표 저장] ====================
-save_dir = os.path.join(PROJECT_NAME, RUN_NAME)
+# ultralytics가 실제로 결과를 저장한 폴더 경로 사용 (runs/detect/seed_{SEED}/RUN_NAME)
+try:
+    save_dir = str(model.trainer.save_dir)
+except Exception:
+    save_dir = os.path.join("runs", "detect", TRAIN_PROJECT, TRAIN_NAME)
 os.makedirs(save_dir, exist_ok=True)
 
 rows = [
@@ -54,6 +80,7 @@ rows = [
     ['Run',       RUN_NAME],
     ['Model',     MODEL_NAME],
     ['Epochs',    str(EPOCHS)],
+    ['Seed',      str(SEED)],
     ['mAP50',     f"{metrics.results_dict['metrics/mAP50(B)']:.4f}"],
     ['mAP50-95',  f"{metrics.results_dict['metrics/mAP50-95(B)']:.4f}"],
     ['Precision', f"{p:.4f}"],
@@ -84,4 +111,5 @@ table_path = os.path.join(save_dir, 'metrics_table.png')
 plt.savefig(table_path, dpi=150, bbox_inches='tight')
 plt.close()
 print(f"-> 성능지표 표 이미지 저장 완료: {table_path}")
+print(f"-> 전체 실험 결과 저장 경로: {save_dir}")
 # =========================================================
