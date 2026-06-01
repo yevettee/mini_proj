@@ -1,2 +1,7 @@
 __pycache__/
 all_images/
+
+# ROS 2 colcon build artifacts
+build/
+install/
+log/
