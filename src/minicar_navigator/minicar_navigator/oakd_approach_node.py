@@ -94,13 +94,21 @@ class OakdApproachNode(Node):
         ns = self.get_namespace().rstrip('/')
         default_rgb   = f'{ns}/oakd/rgb/image_raw/compressed' if ns else '/oakd/rgb/image_raw/compressed'
         default_depth = f'{ns}/oakd/stereo/image_raw'        if ns else '/oakd/stereo/image_raw'
-        default_cmd   = f'{ns}/cmd_vel'                               if ns else '/robot6/cmd_vel'
+        default_cmd   = f'{ns}/cmd_vel'                      if ns else '/cmd_vel'
 
         self.declare_parameter('rgb_topic',             default_rgb)
         self.declare_parameter('depth_topic',           default_depth)
         self.declare_parameter('cmd_vel_topic',         default_cmd)
         self.declare_parameter('approach_status_topic', '/approach_status')
         self.declare_parameter('detection_image_topic', '/oakd_detection_image')
+
+        # --- Sim/Real 호환 파라미터 ---
+        # 실로봇 OAK-D : RGB=compressed, depth=16UC1(mm) + 실측 선형보정
+        # 시뮬(Ignition): RGB=raw Image, depth=32FC1(m) → divisor=1.0, calib a=1.0 b=0.0
+        self.declare_parameter('rgb_compressed',     True)
+        self.declare_parameter('depth_unit_divisor', 1000.0)
+        self.declare_parameter('depth_calib_a',      0.8426)
+        self.declare_parameter('depth_calib_b',      0.1793)
 
         self.model_path           = resolve_model_path(self.get_parameter('model_path').value)
         self.confidence           = self.get_parameter('confidence').value
@@ -117,6 +125,10 @@ class OakdApproachNode(Node):
         cmd_vel_topic             = self.get_parameter('cmd_vel_topic').value
         approach_status_topic     = self.get_parameter('approach_status_topic').value
         detection_image_topic     = self.get_parameter('detection_image_topic').value
+        self.rgb_compressed       = self.get_parameter('rgb_compressed').value
+        self.depth_unit_divisor   = self.get_parameter('depth_unit_divisor').value
+        self.depth_calib_a        = self.get_parameter('depth_calib_a').value
+        self.depth_calib_b        = self.get_parameter('depth_calib_b').value
 
         # --- Internal State ---
         self.state              = ApproachState.IDLE
@@ -166,8 +178,9 @@ class OakdApproachNode(Node):
             durability=QoSDurabilityPolicy.VOLATILE,
             depth=5,
         )
-        self._sub_rgb   = message_filters.Subscriber(self, CompressedImage, rgb_topic,   qos_profile=cam_qos)
-        self._sub_depth = message_filters.Subscriber(self, Image,           depth_topic, qos_profile=cam_qos)
+        rgb_msg_type = CompressedImage if self.rgb_compressed else Image
+        self._sub_rgb   = message_filters.Subscriber(self, rgb_msg_type, rgb_topic,   qos_profile=cam_qos)
+        self._sub_depth = message_filters.Subscriber(self, Image,        depth_topic, qos_profile=cam_qos)
         self._sync = message_filters.ApproximateTimeSynchronizer(
             [self._sub_rgb, self._sub_depth],
             queue_size=5,
@@ -202,10 +215,13 @@ class OakdApproachNode(Node):
             self.get_logger().info('Stop received → IDLE')
             self._enter_idle()
 
-    def _on_synced(self, rgb_msg: CompressedImage, depth_msg: Image):
+    def _on_synced(self, rgb_msg, depth_msg: Image):
         """RGB + Depth 타임스탬프가 slop 이내로 매칭됐을 때만 호출됨."""
         try:
-            frame = self.bridge.compressed_imgmsg_to_cv2(rgb_msg, desired_encoding='bgr8')
+            if self.rgb_compressed:
+                frame = self.bridge.compressed_imgmsg_to_cv2(rgb_msg, desired_encoding='bgr8')
+            else:
+                frame = self.bridge.imgmsg_to_cv2(rgb_msg, desired_encoding='bgr8')
             if frame is not None and frame.size > 0:
                 if not self.logged_rgb_shape:
                     self.get_logger().info(f'RGB image shape: {frame.shape}')
@@ -428,13 +444,13 @@ class OakdApproachNode(Node):
             max(0, dy - 1):min(dep_h, dy + 2),
             max(0, dx - 1):min(dep_w, dx + 2)
         ]
-        valid = patch[patch > 0]
+        valid = patch[(patch > 0) & np.isfinite(patch)]  # sim depth의 inf/nan 제거
         if valid.size == 0:
             return None
 
-        raw_m = float(np.mean(valid)) / 1000.0  # mm → m
-        # 선형 보정: real = 0.8426 * measured + 0.1793 (실측 캘리브레이션)
-        return 0.8426 * raw_m + 0.1793
+        raw_m = float(np.mean(valid)) / self.depth_unit_divisor  # real:mm(/1000), sim:m(/1.0)
+        # 선형 보정: real = a * measured + b (실측 캘리브레이션; sim은 a=1, b=0)
+        return self.depth_calib_a * raw_m + self.depth_calib_b
 
     def _enter_idle(self):
         self._stop_movement()

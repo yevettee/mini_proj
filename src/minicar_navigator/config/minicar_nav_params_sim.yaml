@@ -1,0 +1,59 @@
+# minicar_nav_params_sim.yaml
+# ----------------------------
+# Gazebo(Ignition) 시뮬레이션 전용 파라미터.
+# 실로봇용은 minicar_nav_params.yaml. (B안: 웹캠 yolo_detector 미사용)
+#
+# 실로봇 → 시뮬 차이:
+#   - 네임스페이스 /robot6 제거 (시뮬 기본 네임스페이스 없음)
+#   - OAK-D 토픽: /oakd/rgb/preview/image_raw (raw Image), /oakd/rgb/preview/depth (32FC1, m)
+#   - depth 단위/캘리브레이션 보정 비활성화 (sim은 이미 미터)
+#   - best.pt 상대경로 (패키지 share/models 에서 로드)
+
+nav2_controller:
+  ros__parameters:
+    # ⚠️ 시뮬 맵 기준 "RC car가 보이는 위치" 좌표로 반드시 수정.
+    #    RViz의 'Publish Point' 또는 '2D Goal Pose'로 좌표 확인 후 입력하거나,
+    #    launch 인자(goal_x:= goal_y:= goal_yaw:=)로 덮어쓰기.
+    goal_x: 0.0
+    goal_y: 0.0
+    goal_yaw: 0.0
+    goal_frame_id: "map"
+    # 시뮬은 네임스페이스가 없으므로 /robot6 제거
+    action_server_name: "navigate_to_pose"
+
+
+minicar_nav_manager:
+  ros__parameters:
+    # 웹캠이 없으므로 /minicar_detected 를 수동으로 1번만 쏴서 시작 → 임계값 1
+    detection_count_threshold: 1
+    cooldown_sec: 10.0
+    check_rate: 5.0
+
+
+oakd_approach_node:
+  ros__parameters:
+    # best.pt 상대경로 → resolve_model_path가 패키지 share/models/best.pt 에서 로드
+    model_path: "best.pt"
+
+    # 시뮬 렌더링 차량은 실차와 외형이 달라 감지가 약함 → confidence 낮춤
+    confidence: 0.25
+    target_class: "car"
+
+    target_distance: 0.5
+    max_linear_speed: 0.2
+    max_angular_speed: 0.3
+    kp_linear: 0.3
+    kp_angular: 0.4
+    search_angular_speed: 0.3
+    search_timeout_sec: 30.0
+
+    # 시뮬 OAK-D 토픽 (ros_gz 브리지 기준)
+    rgb_topic: "/oakd/rgb/preview/image_raw"
+    depth_topic: "/oakd/rgb/preview/depth"
+    cmd_vel_topic: "/cmd_vel"
+
+    # 시뮬 호환 설정
+    rgb_compressed: false        # sim RGB는 raw Image (compressed 아님)
+    depth_unit_divisor: 1.0      # sim depth는 이미 미터 (실로봇은 1000.0=mm)
+    depth_calib_a: 1.0           # sim은 캘리브레이션 보정 없음
+    depth_calib_b: 0.0
