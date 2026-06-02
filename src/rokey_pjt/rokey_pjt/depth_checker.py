@@ -101,7 +101,7 @@ class DepthChecker(Node):
         # 기본 모델: 사용자가 학습한 best.pt (Round1_v8_Nano) — models/ 아래로 정리된 위치
         self.declare_parameter(
             'model_path',
-            str(Path.home() / 'mini_proj' / 'models' / 'runs' / 'YOLO_Tournament' / 'Round1_v8_Nano' / 'weights' / 'best.pt')
+            str(Path.home() / 'mini_proj' / 'models' / 'final_v11n_augment' / 'best.pt')
         )
         self.declare_parameter('conf_threshold', 0.5)
         self.declare_parameter('inference_hz', 6.0)           # YOLO 추론 주기 (너무 높이면 CPU/GPU 부하)
