@@ -1,0 +1,37 @@
+============================================================
+ YOLO Model Comparison - Best Model Report
+ Generated: 2026-06-02 02:25:49
+============================================================
+
+[ Best Performance by Metric ]
+----------------------------------------
+mAP@50: 0.9950
+  -> baseline_v8n (YOLOv8)
+
+mAP@50-95: 0.8623
+  -> v11n_augment (YOLO11)
+
+Precision: 0.9985
+  -> baseline_v11n (YOLO11)
+
+Recall: 1.0000
+  -> baseline_v8n (YOLOv8)
+
+F1-Score: 0.9992
+  -> baseline_v11n (YOLO11)
+
+----------------------------------------
+[ Overall Recommendation ]
+
+Best Baseline Model: YOLO26
+  mAP@50-95: 0.8596
+
+[ Average Performance by Model Version ]
+YOLO11:
+  Avg mAP50: 0.9950 | Avg mAP50-95: 0.8403 | Avg F1: 0.9978
+YOLO26:
+  Avg mAP50: 0.9917 | Avg mAP50-95: 0.8430 | Avg F1: 0.9709
+YOLOv8:
+  Avg mAP50: 0.9943 | Avg mAP50-95: 0.8427 | Avg F1: 0.9960
+
+============================================================

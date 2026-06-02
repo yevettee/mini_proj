@@ -15,7 +15,7 @@ OAK-D (TurtleBot4) 의 RGB + Depth 이미지를 받아 YOLO로 객체를 검출�
 
   # 모델 경로 변경 (커스텀 학습 모델 사용 시)
   ros2 run rokey_pjt depth_checker --ros-args \
-    -p model_path:=/home/woody/mini_proj/runs/detect/YOLO_Tournament/Round1_v8_Nano/weights/best.pt \
+    -p model_path:=/home/woody/mini_proj/models/runs/YOLO_Tournament/Round1_v8_Nano/weights/best.pt \
     -p conf_threshold:=0.45 \
     -p inference_hz:=6.0
 """
@@ -98,10 +98,10 @@ class DepthChecker(Node):
         self.declare_parameter('rgb_topic', DEFAULT_RGB_TOPIC)
         self.declare_parameter('depth_topic', DEFAULT_DEPTH_TOPIC)
         self.declare_parameter('camera_info_topic', DEFAULT_INFO_TOPIC)
-        # 기본 모델: 사용자가 학습한 best.pt (Round1_v8_Nano)
+        # 기본 모델: 사용자가 학습한 best.pt (Round1_v8_Nano) — models/ 아래로 정리된 위치
         self.declare_parameter(
             'model_path',
-            str(Path.home() / 'mini_proj' / 'runs' / 'detect' / 'YOLO_Tournament' / 'Round1_v8_Nano' / 'weights' / 'best.pt')
+            str(Path.home() / 'mini_proj' / 'models' / 'runs' / 'YOLO_Tournament' / 'Round1_v8_Nano' / 'weights' / 'best.pt')
         )
         self.declare_parameter('conf_threshold', 0.5)
         self.declare_parameter('inference_hz', 6.0)           # YOLO 추론 주기 (너무 높이면 CPU/GPU 부하)
