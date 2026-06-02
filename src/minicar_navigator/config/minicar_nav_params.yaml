@@ -1,0 +1,87 @@
+# minicar_nav_params.yaml
+# -----------------------
+# 모든 노드의 파라미터를 한 파일에서 관리합니다.
+# ros2 launch minicar_navigator minicar_nav.launch.py 실행 시 이 파일의 값이 기본값으로 사용됩니다.
+
+yolo_detector:
+  ros__parameters:
+    model_path: "/home/rokey/minicar_navigator_ws/src/minicar_navigator/models/best.pt"
+
+    # 웹캠 장치 인덱스
+    camera_index: 3
+
+    # 감지 신뢰도 임계값 (0.0 ~ 1.0)
+    confidence: 0.86
+
+    # 네비게이션 트리거 클래스
+    target_class: "car"
+
+    # 감지 결과 퍼블리시 주기 (Hz)
+    publish_rate: 10.0
+
+    # 웹캠 해상도
+    image_width: 640
+    image_height: 480
+
+
+nav2_controller:
+  ros__parameters:
+    # 목표 지점 (map 좌표계 기준, 미터)
+    goal_x: -2.6492
+    goal_y: 1.1574
+
+    # 목표 방향각 (라디안) - quaternion(z=0.09645, w=0.99534) 변환값
+    goal_yaw: 0.19
+
+    # 좌표 프레임
+    goal_frame_id: "map"
+
+    # Nav2 액션 서버 이름 (네임스페이스 포함)
+    action_server_name: "/robot6/navigate_to_pose"
+
+
+minicar_nav_manager:
+  ros__parameters:
+    # 네비게이션을 트리거하기 위한 연속 감지 횟수
+    # 높을수록 오감지 방지 효과가 커지나 반응이 느려집니다
+    detection_count_threshold: 5
+
+    # 네비게이션 완료 후 재감지 방지 쿨다운 (초)
+    cooldown_sec: 10.0
+
+    # 상태 머신 확인 주기 (Hz)
+    check_rate: 5.0
+
+
+oakd_approach_node:
+  ros__parameters:
+    # 학습 모델 경로 (best.pt 경로로 수정)
+    model_path: "/home/rokey/minicar_navigator_ws/src/minicar_navigator/models/best.pt"
+
+    # 감지 신뢰도 임계값 (접근 단계는 낮게 — 근거리에서 confidence가 낮게 나올 수 있음)
+    confidence: 0.50
+
+    # 감지 클래스
+    target_class: "car"
+
+    # 목표 정지 거리 (미터) - 이 거리가 되면 ARRIVED
+    target_distance: 0.5
+
+    # 최대 속도
+    max_linear_speed: 0.2
+    max_angular_speed: 0.3
+
+    # 비례 게인
+    kp_linear: 0.3
+    kp_angular: 0.4
+
+    # 탐색 회전 속도 (rad/s)
+    search_angular_speed: 0.3
+
+    # 탐색 타임아웃 (초)
+    search_timeout_sec: 30.0
+
+    # OAK-D 토픽 (robot6 네임스페이스, compressed로 속도 향상)
+    rgb_topic: "/robot6/oakd/rgb/image_raw/compressed"
+    depth_topic: "/robot6/oakd/stereo/image_raw"
+    cmd_vel_topic: "/robot6/cmd_vel"
