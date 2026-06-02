@@ -70,6 +70,10 @@ def generate_launch_description():
             config,
             {'target_distance': LaunchConfiguration('target_distance')},
         ],
+        remappings=[
+            ('/tf',        '/robot6/tf'),
+            ('/tf_static', '/robot6/tf_static'),
+        ],
     )
 
     return LaunchDescription(args + [yolo_detector, nav2_controller, manager, oakd_approach])

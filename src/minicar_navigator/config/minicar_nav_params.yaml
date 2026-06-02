@@ -5,13 +5,13 @@
 
 yolo_detector:
   ros__parameters:
-    model_path: "/home/rokey/minicar_navigator_ws/src/minicar_navigator/models/best.pt"
+    model_path: "/home/rokey/mini_proj/src/minicar_navigator/models/best.pt"
 
     # 웹캠 장치 인덱스
-    camera_index: 3
+    camera_index: 2
 
     # 감지 신뢰도 임계값 (0.0 ~ 1.0)
-    confidence: 0.86
+    confidence: 0.80
 
     # 네비게이션 트리거 클래스
     target_class: "car"
@@ -55,17 +55,23 @@ minicar_nav_manager:
 
 oakd_approach_node:
   ros__parameters:
-    # 학습 모델 경로 (best.pt 경로로 수정)
-    model_path: "/home/rokey/minicar_navigator_ws/src/minicar_navigator/models/best.pt"
+    # 학습 모델 경로
+    model_path: "/home/rokey/mini_proj/src/minicar_navigator/models/best.pt"
 
-    # 감지 신뢰도 임계값 (접근 단계는 낮게 — 근거리에서 confidence가 낮게 나올 수 있음)
-    confidence: 0.50
+    # 감지 신뢰도 임계값
+    confidence: 0.80
 
     # 감지 클래스
     target_class: "car"
 
-    # 목표 정지 거리 (미터) - 이 거리가 되면 ARRIVED
+    # FOLLOWING 전환 거리 (m) — 이 거리 이하면 cmd_vel 추종 모드
     target_distance: 0.5
+
+    # FOLLOWING→NAVIGATING 재전환 거리 (m) — 차가 이 거리 이상 멀어지면 Nav2로 재접근
+    follow_hysteresis: 1.5
+
+    # Nav2 goal 재전송 주기 (s) — 차가 움직일 경우 목표 갱신
+    nav_update_interval: 1.0
 
     # 최대 속도
     max_linear_speed: 0.2
@@ -81,7 +87,14 @@ oakd_approach_node:
     # 탐색 타임아웃 (초)
     search_timeout_sec: 30.0
 
-    # OAK-D 토픽 (robot6 네임스페이스, compressed로 속도 향상)
+    # OAK-D 토픽 (robot6 네임스페이스)
     rgb_topic: "/robot6/oakd/rgb/image_raw/compressed"
     depth_topic: "/robot6/oakd/stereo/image_raw"
+    camera_info_topic: "/robot6/oakd/rgb/camera_info"
     cmd_vel_topic: "/robot6/cmd_vel"
+
+    # Nav2 액션 서버
+    action_server_name: "/robot6/navigate_to_pose"
+
+    # map TF 프레임 이름 (namespace 포함 시 robot6/map)
+    map_frame: "map"

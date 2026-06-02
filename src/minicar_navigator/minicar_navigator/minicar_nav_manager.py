@@ -117,14 +117,16 @@ class MinicarNavManagerNode(Node):
         if not self._approach_active or self.state != ManagerState.SEARCHING:
             return
         status = msg.data
-        if status == 'ARRIVED':
-            self.get_logger().info('Approach ARRIVED → entering COOLDOWN')
+        if status in ('ARRIVED', 'FOLLOWING'):
+            # FOLLOWING: 0.5m 이내 추종 도달 (하이브리드 모드)
+            # ARRIVED: 구버전 호환
+            self.get_logger().info(f'Approach {status} → robot reached car, entering COOLDOWN')
             self._stop_approach()
             self._enter_cooldown()
         elif status == 'IDLE':
             self.get_logger().warn('Approach ended (timeout) → entering COOLDOWN')
             self._enter_cooldown()
-        # SEARCHING / APPROACHING 은 중간 상태 — 무시
+        # SEARCHING / NAVIGATING 은 중간 상태 — 무시
 
     # ------------------------------------------------------------------ #
     #  State Machine Tick                                                  #

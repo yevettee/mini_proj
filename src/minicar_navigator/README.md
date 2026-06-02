@@ -46,7 +46,7 @@ pip install ultralytics opencv-python
 ### 2. 패키지 빌드
 
 ```bash
-cd ~/minicar_nav_ws
+cd ~/mini_proj
 colcon build --packages-select minicar_navigator
 source install/setup.bash
 ```
@@ -137,7 +137,7 @@ ros2 topic echo /nav_status
 ```python
 from ultralytics import YOLO
 
-model = YOLO('yolov8n.pt')
+model = YOLO('best.pt')  # 기존 학습 모델 기반 파인튜닝
 model.train(
     data='minicar_dataset.yaml',  # 미니카 데이터셋 설정 파일
     epochs=100,
