@@ -37,6 +37,16 @@ def generate_launch_description():
     # ------------------------------------------------------------------ #
     #  Nodes — 모델 경로는 config에서 관리                                 #
     # ------------------------------------------------------------------ #
+
+    # AMCL 초기 위치 미설정 시 자동 initialpose 발행 + 언도킹, 완료 후 종료
+    localization_init = Node(
+        package='minicar_navigator',
+        executable='localization_init',
+        name='localization_init',
+        output='screen',
+        parameters=[config],
+    )
+
     yolo_detector = Node(
         package='minicar_navigator',
         executable='yolo_detector',
@@ -76,4 +86,4 @@ def generate_launch_description():
         ],
     )
 
-    return LaunchDescription(args + [yolo_detector, nav2_controller, manager, oakd_approach])
+    return LaunchDescription(args + [localization_init, yolo_detector, nav2_controller, manager, oakd_approach])
