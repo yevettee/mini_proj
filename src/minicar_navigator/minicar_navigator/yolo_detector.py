@@ -26,6 +26,10 @@ class YoloDetectorNode(Node):
         self.declare_parameter('publish_rate', 10.0)
         self.declare_parameter('image_width',  640)
         self.declare_parameter('image_height', 480)
+        self.declare_parameter('roi_x_min', 0.0)
+        self.declare_parameter('roi_x_max', 1.0)
+        self.declare_parameter('roi_y_min', 0.0)
+        self.declare_parameter('roi_y_max', 1.0)
 
         model_path        = resolve_model_path(self.get_parameter('model_path').value)
         self.camera_index = self.get_parameter('camera_index').value
@@ -34,6 +38,10 @@ class YoloDetectorNode(Node):
         publish_rate      = self.get_parameter('publish_rate').value
         self.image_width  = self.get_parameter('image_width').value
         self.image_height = self.get_parameter('image_height').value
+        self.roi_x_min    = self.get_parameter('roi_x_min').value
+        self.roi_x_max    = self.get_parameter('roi_x_max').value
+        self.roi_y_min    = self.get_parameter('roi_y_min').value
+        self.roi_y_max    = self.get_parameter('roi_y_max').value
 
         self.model      = YOLO(model_path)
         self.classNames = self.model.names if hasattr(self.model, 'names') else {}
@@ -50,7 +58,8 @@ class YoloDetectorNode(Node):
 
         self.get_logger().info(
             f'YoloDetector ready | model={model_path} | '
-            f'target="{self.target_class}" | conf={self.confidence} | camera={self.camera_index}'
+            f'target="{self.target_class}" | conf={self.confidence} | camera={self.camera_index} | '
+            f'roi=({self.roi_x_min:.2f},{self.roi_y_min:.2f})-({self.roi_x_max:.2f},{self.roi_y_max:.2f})'
         )
 
     def _tick(self):
@@ -63,13 +72,26 @@ class YoloDetectorNode(Node):
         triggered = False
         annotated = frame.copy()
 
+        # ROI 픽셀 좌표 계산 및 시각화
+        roi_px1 = int(self.roi_x_min * self.image_width)
+        roi_py1 = int(self.roi_y_min * self.image_height)
+        roi_px2 = int(self.roi_x_max * self.image_width)
+        roi_py2 = int(self.roi_y_max * self.image_height)
+        cv2.rectangle(annotated, (roi_px1, roi_py1), (roi_px2, roi_py2), (255, 255, 0), 2)
+
         for result in results:
             for box in result.boxes:
                 cls_id   = int(box.cls[0])
                 cls_name = self.classNames.get(cls_id, '').lower()
                 conf_val = float(box.conf[0])
                 x1, y1, x2, y2 = map(int, box.xyxy[0])
-                is_target = cls_name == self.target_class
+
+                # 박스 중심이 ROI 안에 있어야 유효한 탐지로 처리
+                cx = (x1 + x2) // 2
+                cy = (y1 + y2) // 2
+                in_roi = roi_px1 <= cx <= roi_px2 and roi_py1 <= cy <= roi_py2
+
+                is_target = cls_name == self.target_class and in_roi
                 if is_target:
                     triggered = True
                 color = COLOR_TARGET if is_target else COLOR_OTHER
