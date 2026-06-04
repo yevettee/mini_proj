@@ -7,6 +7,12 @@ minicar_nav.launch.py
 사용 예:
   ros2 launch minicar_navigator minicar_nav.launch.py
   ros2 launch minicar_navigator minicar_nav.launch.py target_class:=bottle
+
+실행 순서 (사전 조건):
+  터미널1: ros2 launch turtlebot4_navigation localization.launch.py namespace:=/robot6 map:=...
+  터미널2: ros2 launch turtlebot4_navigation nav2.launch.py namespace:=/robot6
+  터미널3: ros2 launch minicar_navigator minicar_nav.launch.py  ← 이 파일
+           (AMCL 초기 위치 미설정 시 localization_init 이 자동으로 언도킹까지 처리)
 """
 
 import os
@@ -37,6 +43,17 @@ def generate_launch_description():
     # ------------------------------------------------------------------ #
     #  Nodes — 모델 경로는 config에서 관리                                 #
     # ------------------------------------------------------------------ #
+
+    # AMCL 초기 위치 미설정 시 자동으로 initialpose 발행 + 언도킹
+    # 이미 설정돼 있으면 2초 확인 후 자동 종료
+    localization_init = Node(
+        package='minicar_navigator',
+        executable='localization_init',
+        name='localization_init',
+        output='screen',
+        parameters=[config],
+    )
+
     yolo_detector = Node(
         package='minicar_navigator',
         executable='yolo_detector',
@@ -76,4 +93,10 @@ def generate_launch_description():
         ],
     )
 
-    return LaunchDescription(args + [yolo_detector, nav2_controller, manager, oakd_approach])
+    return LaunchDescription(args + [
+        localization_init,
+        yolo_detector,
+        nav2_controller,
+        manager,
+        oakd_approach,
+    ])

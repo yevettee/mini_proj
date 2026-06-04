@@ -1,7 +1,23 @@
 # minicar_nav_params.yaml
+#
+# [초기화 순서]
+# 터미널1: ros2 launch turtlebot4_navigation localization.launch.py namespace:=/robot6 map:=<map.yaml>
+# 터미널2: ros2 launch turtlebot4_navigation nav2.launch.py namespace:=/robot6
+# 터미널3: ros2 run minicar_navigator localization_init  (RViz 2D Pose Estimate 대체)
+# 터미널4: ros2 launch minicar_navigator minicar_nav.launch.py
 # -----------------------
 # 모든 노드의 파라미터를 한 파일에서 관리합니다.
 # ros2 launch minicar_navigator minicar_nav.launch.py 실행 시 이 파일의 값이 기본값으로 사용됩니다.
+
+localization_init:
+  ros__parameters:
+    namespace: "robot6"
+
+    # ★ 도크의 map 좌표를 입력하세요 (RViz에서 로봇 실제 위치를 클릭했던 좌표)
+    dock_x:    0.036
+    dock_y:    0.012
+    dock_yaw: -2.983   # 라디안 (AMCL 로그에서 확인)
+
 
 yolo_detector:
   ros__parameters:
