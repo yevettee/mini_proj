@@ -94,7 +94,7 @@ oakd_approach_node:
     search_angular_speed: 0.3
 
     # 탐색 타임아웃 (초)
-    search_timeout_sec: 30.0
+    search_timeout_sec: 10.0
 
     # OAK-D 토픽 (robot6 네임스페이스)
     rgb_topic: "/robot6/oakd/rgb/image_raw/compressed"
