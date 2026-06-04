@@ -3,6 +3,15 @@
 # 모든 노드의 파라미터를 한 파일에서 관리합니다.
 # ros2 launch minicar_navigator minicar_nav.launch.py 실행 시 이 파일의 값이 기본값으로 사용됩니다.
 
+localization_init:
+  ros__parameters:
+    namespace: "robot6"
+
+    # 도크 실측 좌표 (ros2 topic echo /robot6/amcl_pose 로 확인)
+    dock_x:    -0.5745
+    dock_y:    -0.0554
+    dock_yaw:  -2.8307   # 2 * atan2(z=-0.9879, w=0.1548)
+
 yolo_detector:
   ros__parameters:
     model_path: "/home/rokey/mini_proj/src/minicar_navigator/models/best.pt"
