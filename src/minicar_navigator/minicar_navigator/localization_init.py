@@ -17,7 +17,7 @@ import rclpy.duration
 from rclpy.node import Node
 from rclpy.action import ActionClient
 
-from irobot_create_msgs.action import Undock
+from irobot_create_msgs.action import Dock, Undock
 from irobot_create_msgs.msg import DockStatus
 
 
@@ -38,6 +38,7 @@ class LocalizationInitNode(Node):
             10,
         )
 
+        self._dock_client   = ActionClient(self, Dock,   f'/{ns}/dock')
         self._undock_client = ActionClient(self, Undock, f'/{ns}/undock')
 
         self.get_logger().info(f'localization_init 시작 | namespace=/{ns}')
@@ -59,10 +60,30 @@ class LocalizationInitNode(Node):
 
         self.get_logger().info(f'도크 상태: {"도킹됨" if self._is_docked else "도킹 안 됨"}')
 
-        if self._is_docked:
-            self._do_undock()
-        else:
-            self.get_logger().info('이미 언도킹 상태. 완료.')
+        if not self._is_docked:
+            self.get_logger().info('언도킹 상태 → 도킹 후 언도킹합니다.')
+            self._do_dock()
+
+        self._do_undock()
+
+    def _do_dock(self):
+        self.get_logger().info('Dock 액션 서버 연결 대기 중...')
+        if not self._dock_client.wait_for_server(timeout_sec=10.0):
+            self.get_logger().error('Dock 서버에 연결할 수 없습니다.')
+            return
+
+        self.get_logger().info('도킹 시작...')
+        future = self._dock_client.send_goal_async(Dock.Goal())
+        rclpy.spin_until_future_complete(self, future)
+
+        goal_handle = future.result()
+        if not goal_handle.accepted:
+            self.get_logger().error('Dock goal이 거부되었습니다.')
+            return
+
+        result_future = goal_handle.get_result_async()
+        rclpy.spin_until_future_complete(self, result_future)
+        self.get_logger().info('도킹 완료.')
 
     def _do_undock(self):
         self.get_logger().info('Undock 액션 서버 연결 대기 중...')
