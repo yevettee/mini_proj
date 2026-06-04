@@ -29,7 +29,6 @@ setup(
             'nav2_controller = minicar_navigator.nav2_controller:main',
             'minicar_nav_manager = minicar_navigator.minicar_nav_manager:main',
             'oakd_approach_node = minicar_navigator.oakd_approach_node:main',
-            'localization_init = minicar_navigator.localization_init:main',
         ],
     },
 )
